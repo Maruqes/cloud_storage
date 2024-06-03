@@ -1,104 +1,113 @@
 const fs = require('fs');
-
-require('isomorphic-fetch');
-const azure = require('@azure/identity');
-const graph = require('@microsoft/microsoft-graph-client');
-const authProviders =
-    require('@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials');
+const { url } = require('inspector');
+const file_saver = require('./file_saver.js');
 
 
+let code = undefined;
+let token = undefined;
+let refresh_token = undefined;
 
-let _settings = undefined;
-let _deviceCodeCredential = undefined;
-let _userClient = undefined;
+function set_code(new_code)
+{
+    code = new_code;
+}
 
-function initializeGraphForUserAuth(settings, deviceCodePrompt) {
-    console.log("Login in...")
-    // Ensure settings isn't null
-    if (!settings) {
-        throw new Error('Settings cannot be undefined');
-    }
+function get_code()
+{
+    return code;
+}
 
-    _settings = settings;
 
-    _deviceCodeCredential = new azure.DeviceCodeCredential(
+
+async function api_login(settings)
+{
+    let file_tokens = file_saver.get_tokens_from_file();
+
+    if (file_tokens !== undefined)
+    {
+        token = file_tokens.token;
+        refresh_token = file_tokens.refresh_token;
+        let res = await call_api_graph('/me');
+        if (res.error !== undefined)
         {
-            tenantId: settings.tenantId,
-            clientId: settings.clientId,
-            userCodeInfo: deviceCodePrompt
+            console.log("Error: " + res.error.message);
+        } else
+        {
+            console.log("Logged in");
+            return 0;
         }
-        // settings.username,
-        // settings.password
-    );
-
-    const authProvider = new authProviders.TokenCredentialAuthenticationProvider(
-        _deviceCodeCredential, {
-        scopes: settings.graphUserScopes
-    });
-
-    _userClient = graph.Client.initWithMiddleware({
-        authProvider: authProvider
-    });
-
-}
-
-function initializeGraph(settings) {
-
-    initializeGraphForUserAuth(settings, (info) => {
-        // Display the device code message to
-        // the user. This tells them
-        // where to go to sign in and provides the
-        // code to use.
-        console.log(info.message);
-    });
-}
-
-async function getUserTokenAsync() {
-    // Ensure credential isn't undefined
-    if (!_deviceCodeCredential) {
-        throw new Error('Graph has not been initialized for user auth');
     }
 
-    // Ensure scopes isn't undefined
-    if (!_settings?.graphUserScopes) {
-        throw new Error('Setting "scopes" cannot be undefined');
-    }
-
-    // Request token with given scopes
-    const response = await _deviceCodeCredential.getToken(_settings?.graphUserScopes);
-    return response;
+    let url_fetch = file_saver.construct_url(settings);
+    let response = await fetch(url_fetch, {
+        method: 'GET',
+    });
+    console.log("\n\n\nOPEN THIS URL IN YOUR BROWSER: " + response.url)
+    return 0;
 }
 
 
-async function api(input) {
-    if (!_userClient) {
-        throw new Error('Graph has not been initialized for user auth');
-    }
+async function call_api_graph(input)
+{
+    const url = "https://graph.microsoft.com/v1.0" + input;
 
-    return await _userClient.api(input).get();
-}
-
-async function graph_api(input, token) {
-    const response = await fetch("https://graph.microsoft.com/v1.0" + input, {
+    return await fetch(url, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`
         }
-    });
+    })
+        .then(response => response.json())
+        .then(data =>
+        {
+            return data;
+        })
+        .catch((error) =>
+        {
+            console.error('Error:', error);
+            return -1;
+        });
 
-    return await response.json();
 }
 
-async function request_new_token() {
-    const host = "https://login.microsoftonline.com"
-    const tenantId = _settings.tenantId;
-    const clientId = _settings.clientId;
-    const clientSecret = _settings.clientSecret;
+
+function upload_file(file_path, file_name)
+{
+    const url = "https://graph.microsoft.com/v1.0/me/drive/root:/" + file_name + ":/content";
+
+    fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: fs.readFileSync(file_path)
+    })
+        .then(response => response.json())
+        .then(data =>
+        {
+            console.log(data);
+        })
+        .catch((error) =>
+        {
+            console.error('Error:', error);
+        });
+
+    return 0;
+}
+
+
+async function get_tokens(settings)
+{
+    const host = "https://login.microsoftonline.com";
+    const tenantId = settings.tenantId;
+    const clientId = settings.clientId;
+    const clientSecret = settings.clientSecret;
     const scope = "https://graph.microsoft.com/.default";
-    const grantType = "client_credentials";
+    const grantType = "authorization_code";
 
     const url = `${host}/${tenantId}/oauth2/v2.0/token`;
-    const body = `client_id=${clientId}&scope=${scope}&client_secret=${clientSecret}&grant_type=${grantType}`;
+    const body = `client_id=${clientId}&scope=${scope}&code=${code}&redirect_uri=http://localhost:8080&grant_type=${grantType}&client_secret=${clientSecret}`;
 
     const response = await fetch(url, {
         method: 'POST',
@@ -108,33 +117,20 @@ async function request_new_token() {
         body: body
     });
 
-    return await response.json();
+    const data = await response.json();
+    token = data.access_token;
+    refresh_token = data.refresh_token;
+
+    call_api_graph('/me');
+    file_saver.save_tokens_on_file(token, refresh_token);
+
+    return data;
 }
-
-async function upload_file(file_path, file_name) {
-    // const fileContent = await fs.promises.readFile(file_path, 'utf-8');
-    const fileData = fs.readFileSync(file_path);
-
-    const response = await _userClient.api('/me/drive/root:/' + file_name + ':/content')
-        .put(fileData);
-    console.log(response);
-}
-
-async function api_login(settings) {
-
-    initializeGraph(settings);
-    temp_token = await getUserTokenAsync();
-    console.log(temp_token);
-}
-
-
 
 module.exports = {
-    initializeGraph,
-    getUserTokenAsync,
     api_login,
-    api,
-    upload_file,
-    request_new_token,
-    graph_api
+    call_api_graph,
+    set_code,
+    get_code,
+    get_tokens,
 };

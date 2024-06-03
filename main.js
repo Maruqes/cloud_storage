@@ -1,5 +1,4 @@
 const api = require('./api_connect.js');
-const api2 = require('./api_connect2.js');
 const express = require('express');
 const fs = require('fs');
 const secrets = require('./secrets.json');
@@ -18,9 +17,8 @@ const settings = {
 async function start_aa()
 {
     console.log("starting");
-    await api2.api_login(settings);
-
-}
+    await api.api_login(settings);
+2}
 
 const app = express();
 app.use(express.json());
@@ -30,10 +28,10 @@ app.get('/', async (req, res) =>
 {
     //read ?code from url
     const code = req.query.code;
-    api2.set_code(code);
-    console.log(api2.get_code());
+    api.set_code(code);
+    console.log(api.get_code());
 
-    await api2.get_tokens(settings);
+    await api.get_tokens(settings);
 
     res.sendStatus(200);
 });
