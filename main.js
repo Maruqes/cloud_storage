@@ -1,4 +1,5 @@
 const api = require('./api_connect.js');
+const api2 = require('./api_connect2.js');
 const express = require('express');
 const fs = require('fs');
 const secrets = require('./secrets.json');
@@ -8,51 +9,39 @@ const settings = {
     'clientId': secrets.clientId,
     'tenantId': secrets.tenantId,
     'clientSecret': secrets.clientSecret,
-    'graphUserScopes': secrets.user_scopes
+    'graphUserScopes': secrets.user_scopes,
+    'graphUserScopes_arr': secrets.user_scopes_arr
 };
 
 
 
+async function start_aa()
+{
+    console.log("starting");
+    await api2.api_login(settings);
 
-async function start_aa() {
-    await api.api_login(settings);
-    // await api.upload_file('/home/marques/Pictures/Screenshots/Screenshot from 2024-05-29 15-37-18.png', 'test.png');
-    console.log("token")
-    console.log("token")
-    console.log("token")
-    console.log("token")
-    console.log("token")
-    console.log("token")
-    console.log("token")
-    console.log("token")
-    console.log("token")
-
-    new_token = await api.request_new_token();
-    console.log(new_token);
-    // console.log(await api.graph_api('/me', new_token.access_token));
 }
 
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-start_aa();
+app.get('/', async (req, res) =>
+{
+    //read ?code from url
+    const code = req.query.code;
+    api2.set_code(code);
+    console.log(api2.get_code());
 
-// const app = express();
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
+    await api2.get_tokens(settings);
 
-// app.get('/', (req, res) => {
-//     res.sendFile(__dirname + '/index.html');
-// });
+    res.sendStatus(200);
+});
 
-// app.get('/login_api', (req, res) => {
-//     api.api_login(settings);
-// });
 
-// app.get('/test', async (req, res) => {
-//     console.log('test');
-//     let me = await api.use_user_token_and_get_me();
-//     console.log(me)
-// });
+app.listen(8080, () =>
+{
+    console.log('Server is running on port 3000');
+    start_aa();
+});
 
-// app.listen(3000, () => {
-//     console.log('Server is running on port 3000');
-// });
