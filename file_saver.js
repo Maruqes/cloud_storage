@@ -10,6 +10,7 @@ function save_tokens_on_file(token, refresh_token)
 
     fs.writeFileSync('tokens.json', JSON.stringify(data));
 
+    console.log("Tokens saved on file")
     return 0;
 }
 
