@@ -51,7 +51,8 @@ async function start_aa()
     console.log("starting");
     await api.api_login(settings);
     // upload_files(folderPath, null);
-    api.download_file("/gameJOKER/README.md");
+    // api.download_file("/gameJOKER/user/user.c");
+    api.get_all_files("");
 }
 
 const app = express();

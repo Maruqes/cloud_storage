@@ -1,11 +1,13 @@
 const fs = require('fs');
 const { url } = require('inspector');
 const file_saver = require('./file_saver.js');
+const { get } = require('http');
 
 
 let code = undefined;
 let token = undefined;
 let refresh_token = undefined;
+let dir_path = "/home/marques/cloud_storage";
 
 function set_code(new_code)
 {
@@ -141,11 +143,11 @@ function upload_file(file_path, file_name)
     return 0;
 }
 
-function download_file(file_name)
+async function download_file(file_name)
 {
     const url = "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage" + file_name + ":/content";
 
-    fetch(url, {
+    let res = await fetch(url, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -153,16 +155,83 @@ function download_file(file_name)
     })
         .then(data =>
         {
-            console.log(data);
+            return data;
+        })
+        .catch((error) =>
+        {
+            console.error('Error:', error);
+            return -1;
+        });
+
+    if (res === -1)
+        return -1;
+
+
+    let data = await res.blob();
+    let buffer = await data.arrayBuffer();
+
+    //create dir if does not exist
+    let split_path = file_name.split("/");
+    file_name = "/" + split_path[split_path.length - 1];//Set only the file name
+
+    split_path.pop();
+    for (let i = 0; i < split_path.length; i++)
+    {
+        if (split_path[i] == "")
+            continue;
+        dir_path += "/" + split_path[i];
+        console.log(dir_path)
+        if (!fs.existsSync(dir_path))
+        {
+            fs.mkdirSync(dir_path);
+        }
+    }
+
+    fs.writeFileSync(dir_path + file_name, Buffer.from(buffer));
+    console.log("File downloaded at: " + dir_path + file_name);
+
+    return 0;
+}
+
+
+
+async function get_all_files(path_to_folder)
+{
+    const path = "/me/drive/root:/cloud_storage" + path_to_folder + ":/children";
+
+    let res = await fetch("https://graph.microsoft.com/v1.0" + path, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+        .then(response => response.json())
+        .then(data =>
+        {
+            return data;
         })
         .catch((error) =>
         {
             console.error('Error:', error);
         });
 
-    return 0;
-}
+    //if res contains folder print folder
 
+    let files = res.value;
+    for (let i = 0; i < files.length; i++)
+    {
+        if (files[i].folder != undefined)
+        {
+            console.log("Folder Found: " + files[i].name);
+            get_all_files(path_to_folder + "/" + files[i].name);
+        } else
+        {
+            let final_path = path_to_folder + "/" + files[i].name
+            download_file(final_path);
+        }
+
+    }
+}
 
 async function get_tokens(settings) //ask login on link
 {
@@ -201,4 +270,5 @@ module.exports = {
     get_tokens,
     upload_file,
     download_file,
+    get_all_files,
 };
