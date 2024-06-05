@@ -118,7 +118,7 @@ async function api_login(settings)
 
 function upload_file(file_path, file_name)
 {
-    const url = "https://graph.microsoft.com/v1.0/me/drive/root:/" + file_name + ":/content";
+    const url = "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage" + file_name + ":/content";
 
     fetch(url, {
         method: 'PUT',
@@ -141,8 +141,30 @@ function upload_file(file_path, file_name)
     return 0;
 }
 
+function download_file(file_name)
+{
+    const url = "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage" + file_name + ":/content";
 
-async function get_tokens(settings)
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        }
+    })
+        .then(data =>
+        {
+            console.log(data);
+        })
+        .catch((error) =>
+        {
+            console.error('Error:', error);
+        });
+
+    return 0;
+}
+
+
+async function get_tokens(settings) //ask login on link
 {
     const host = "https://login.microsoftonline.com";
     const tenantId = settings.tenantId;
@@ -166,7 +188,6 @@ async function get_tokens(settings)
     token = data.access_token;
     refresh_token = data.refresh_token;
 
-    call_api_graph('/me');
     file_saver.save_tokens_on_file(token, refresh_token);
 
     return data;
@@ -178,4 +199,6 @@ module.exports = {
     set_code,
     get_code,
     get_tokens,
+    upload_file,
+    download_file,
 };
