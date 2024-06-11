@@ -16,35 +16,7 @@ const settings = {
 
 const userHomeDir = os.homedir()
 
-function upload_files_recursion(path, folder_exeption_last)
-{
-    if (folder_exeption_last == null)
-    {
-        const split_path = path.split("/");
-        folder_exeption_last = split_path.slice(0, split_path.length - 1).join("/");
-    }
 
-    const files = fs.readdirSync(path);
-    files.forEach(file =>
-    {
-        const filePath = `${path}/${file}`;
-        const stats = fs.statSync(filePath);
-        if (stats.isFile())
-        {
-            const sv_file_path = filePath.replace(folder_exeption_last, "");
-            api.upload_file(filePath, sv_file_path);
-        } else if (stats.isDirectory())
-        {
-            if (!filePath.includes("."))
-                upload_files_recursion(filePath, folder_exeption_last);
-        }
-    });
-}
-
-function upload_files(path)
-{
-    upload_files_recursion(path, null)
-}
 
 function create_if_not_exists_main_folder()
 {
@@ -62,8 +34,6 @@ async function start_aa()
     await api.api_login(settings);
     await check_files.testes();
 
-    //  const folderPath = '/home/marques/projects/gameJOKER'; // Replace with the actual folder path
-    // upload_files(folderPath, null);
     // api.download_file("/gameJOKER/user/user.c");
     // api.get_all_files("");
 }

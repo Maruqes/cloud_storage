@@ -5,6 +5,8 @@ const { get } = require('http');
 const os = require("os");
 const { dir } = require('console');
 const print = require("./extras.js")
+const crypto = require("crypto")
+const db = require('./db.js')
 
 
 let code = undefined;
@@ -15,13 +17,22 @@ const userHomeDir = os.homedir()
 const dir_path = userHomeDir + "/cloud_storage";
 
 
-function is_file_changed(file_buffer1, file_hash)
+function get_file_hash_buf(buf)
+{
+    const hash = crypto.createHash('sha256');
+    hash.update(buf);
+    return hash.digest('hex');
+}
+
+function is_file_changed(file_buffer1, file_buffer2)
 {
 
     //create an hash of the file
     let hash1 = get_file_hash_buf(file_buffer1)
+    let hash2 = get_file_hash_buf(file_buffer2)
 
-    if (hash1 !== file_hash)
+
+    if (hash1 !== hash2)
     {
         return true;
     }
@@ -161,7 +172,7 @@ async function upload_file(file_path, file_path_after_cloud_folder)
 {
     const url = "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage" + file_path_after_cloud_folder + ":/content";
 
-    return fetch(url, {
+    return await fetch(url, {
         method: 'PUT',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -180,7 +191,6 @@ async function upload_file(file_path, file_path_after_cloud_folder)
             return -1;
         });
 
-    // return 0;
 }
 
 async function delete_file(file_path_after_cloud_folder)
@@ -221,6 +231,10 @@ async function download_file(file_name)
     })
         .then(data =>
         {
+            if (data.status == 404)
+            {
+                return -2;
+            }
             return data;
         })
         .catch((error) =>
@@ -231,6 +245,8 @@ async function download_file(file_name)
 
     if (res === -1)
         return -1;
+    if (res === -2)
+        return -2
 
 
     let data = await res.blob();
@@ -317,6 +333,38 @@ async function get_all_files(path_to_folder)
     }
 }
 
+async function upload_files_recursion(path, folder_exeption_last)
+{
+    if (folder_exeption_last == null)
+    {
+        const split_path = path.split("/");
+        folder_exeption_last = split_path.slice(0, split_path.length - 0).join("/");
+    }
+
+    const files = fs.readdirSync(path);
+    await files.forEach(file =>
+    {
+        const filePath = `${path}/${file}`;
+        const stats = fs.statSync(filePath);
+        if (stats.isFile())
+        {
+            if (filePath.includes(".cloud_storage.db") || filePath.includes(".cloud_storage_temp.db"))
+                return;
+            const sv_file_path = filePath.replace(folder_exeption_last, "");
+            upload_file(filePath, sv_file_path);
+        } else if (stats.isDirectory())
+        {
+            if (!filePath.includes("."))
+                upload_files_recursion(filePath, folder_exeption_last);
+        }
+    });
+}
+
+async function upload_all_folder()
+{
+    await upload_files_recursion(userHomeDir + "/cloud_storage", null)
+}
+
 
 module.exports = {
     api_login,
@@ -326,4 +374,5 @@ module.exports = {
     download_file,
     get_all_files,
     delete_file,
+    upload_all_folder,
 };
