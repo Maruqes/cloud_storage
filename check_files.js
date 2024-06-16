@@ -94,15 +94,15 @@ async function check_changes_from_db_temp_on_cloud() {
         return;
     }
 
-    let last_sync = await db.get_last_sync_temp_db(temp_db);
-    // try {
-    //     last_sync = await db.get_last_sync_temp_db(temp_db);
+    let last_sync = null;
+    try {
+        last_sync = await db.get_last_sync_temp_db(temp_db);
 
-    // } catch (error) {
-    //     if (error.message.includes("no such table: last_sync")) {
-    //         return;
-    //     }
-    // }
+    } catch (error) {
+        if (error.message.includes("no such table: last_sync")) {
+            return;
+        }
+    }
 
     const our_last_sync = await db.get_last_sync();
 
