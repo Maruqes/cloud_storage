@@ -37,7 +37,12 @@ async function update_file_on_pc(file_path) {
 }
 
 async function delete_file_on_pc(file_path) {
-    fs.unlinkSync(file_path);
+    try {
+        fs.unlinkSync(file_path);
+    } catch (error) {
+        print.error("Error deleting file");
+        return;
+    }
     print.okay(`Deleted file on pc: ${file_path}`);
 }
 
@@ -243,6 +248,9 @@ async function compare_folder_to_db_files(dir_path, folder, db) {
         try {
             stats = fs.statSync(filePath);
         } catch (error) {
+            if (error.message.includes("no such file or directory")) {
+                await delete_file(filePath);
+            }
             continue;
         }
 
