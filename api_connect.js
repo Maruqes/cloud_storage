@@ -255,7 +255,6 @@ async function download_file(file_name) {
 
     } catch (err) {
         if (err.code === 'ENOENT') {
-            return -1;
             fs.writeFileSync(dir_path + file_name, Buffer.from(buffer));
             console.log("File downloaded at: " + dir_path + file_name + " size of file: " + buffer.byteLength);
         }
