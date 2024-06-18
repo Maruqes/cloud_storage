@@ -58,8 +58,6 @@ async function delete_file(file_path) {
 }
 
 async function get_all_files() {
-    print.info("Getting all files from database");
-
     return await new Promise(async (resolve, reject) => {
         db.serialize(async function () {
             await db.all("SELECT * FROM files", (err, rows) => {
