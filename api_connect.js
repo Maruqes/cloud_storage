@@ -17,31 +17,27 @@ const userHomeDir = os.homedir()
 const dir_path = userHomeDir + "/cloud_storage";
 
 
-function get_file_hash_buf(buf)
-{
+function get_file_hash_buf(buf) {
     const hash = crypto.createHash('sha256');
     hash.update(buf);
     return hash.digest('hex');
 }
 
-function is_file_changed(file_buffer1, file_buffer2)
-{
+function is_file_changed(file_buffer1, file_buffer2) {
 
     //create an hash of the file
     let hash1 = get_file_hash_buf(file_buffer1)
     let hash2 = get_file_hash_buf(file_buffer2)
 
 
-    if (hash1 !== hash2)
-    {
+    if (hash1 !== hash2) {
         return true;
     }
     return false;
 }
 
 
-async function call_api_graph(input)
-{
+async function call_api_graph(input) {
     const url = "https://graph.microsoft.com/v1.0" + input;
 
     return await fetch(url, {
@@ -51,20 +47,17 @@ async function call_api_graph(input)
         }
     })
         .then(response => response.json())
-        .then(data =>
-        {
+        .then(data => {
             return data;
         })
-        .catch((error) =>
-        {
+        .catch((error) => {
             console.error('Error:', error);
             return -1;
         });
 }
 
 
-async function get_new_token_with_refresh_token(settings)
-{
+async function get_new_token_with_refresh_token(settings) {
     console.log("\n\nREFRESHING TOKEN\n\n")
     const host = "https://login.microsoftonline.com";
     const tenantId = settings.tenantId;
@@ -89,12 +82,10 @@ async function get_new_token_with_refresh_token(settings)
     refresh_token = data.refresh_token;
 
     let res = await call_api_graph('/me');
-    if (res.error !== undefined)
-    {
+    if (res.error !== undefined) {
         console.log("Error: " + res.error.message);
         return res.error;
-    } else
-    {
+    } else {
         file_saver.save_tokens_on_file(token, refresh_token);
         console.log("Logged in");
         console.log(res);
@@ -103,20 +94,16 @@ async function get_new_token_with_refresh_token(settings)
 }
 
 
-async function api_login(settings)
-{
+async function api_login(settings) {
     let file_tokens = file_saver.get_tokens_from_file();
 
-    if (file_tokens !== undefined)
-    {
+    if (file_tokens !== undefined) {
         token = file_tokens.token;
         refresh_token = file_tokens.refresh_token;
         let res = await call_api_graph('/me');
-        if (res.error !== undefined)
-        {
+        if (res.error !== undefined) {
             console.log("Error: " + res.error.message);
-        } else
-        {
+        } else {
             console.log("Logged in");
             console.log(res);
             return 0;
@@ -124,8 +111,7 @@ async function api_login(settings)
     }
 
 
-    if (await get_new_token_with_refresh_token(settings) === 0)
-    {
+    if (await get_new_token_with_refresh_token(settings) === 0) {
         return 0;
     }
 
@@ -168,8 +154,7 @@ async function get_tokens(settings) //ask login on link
 
 
 
-async function upload_file(file_path, file_path_after_cloud_folder)
-{
+async function upload_file(file_path, file_path_after_cloud_folder) {
     const url = "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage" + file_path_after_cloud_folder + ":/content";
 
     return await fetch(url, {
@@ -181,20 +166,17 @@ async function upload_file(file_path, file_path_after_cloud_folder)
         body: fs.readFileSync(file_path)
     })
         .then(response => response.json())
-        .then(data =>
-        {
+        .then(data => {
             return data;
         })
-        .catch((error) =>
-        {
+        .catch((error) => {
             console.error('Error:', error);
             return -1;
         });
 
 }
 
-async function delete_file(file_path_after_cloud_folder)
-{
+async function delete_file(file_path_after_cloud_folder) {
     const url = "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage" + file_path_after_cloud_folder;
 
     return fetch(url, {
@@ -203,12 +185,10 @@ async function delete_file(file_path_after_cloud_folder)
             'Authorization': `Bearer ${token}`
         }
     })
-        .then(data =>
-        {
+        .then(data => {
             return data;
         })
-        .catch((error) =>
-        {
+        .catch((error) => {
             console.error('Error:', error);
             return -1;
         });
@@ -219,8 +199,7 @@ async function delete_file(file_path_after_cloud_folder)
 
 
 
-async function download_file(file_name)
-{
+async function download_file(file_name) {
     const url = "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage" + file_name + ":/content";
 
     let res = await fetch(url, {
@@ -229,16 +208,13 @@ async function download_file(file_name)
             'Authorization': `Bearer ${token}`,
         }
     })
-        .then(data =>
-        {
-            if (data.status == 404)
-            {
+        .then(data => {
+            if (data.status == 404) {
                 return -2;
             }
             return data;
         })
-        .catch((error) =>
-        {
+        .catch((error) => {
             console.error('Error:', error);
             return -1;
         });
@@ -258,33 +234,28 @@ async function download_file(file_name)
     split_path.pop();
     let temp_path = dir_path;
 
-    for (let i = 0; i < split_path.length; i++)
-    {
+    for (let i = 0; i < split_path.length; i++) {
         if (split_path[i] == "")
             continue;
         temp_path += "/" + split_path[i];
-        if (!fs.existsSync(temp_path))
-        {
+        if (!fs.existsSync(temp_path)) {
             fs.mkdirSync(temp_path);
         }
     }
 
     file_name = file_name.replace(dir_path, "");
 
-    try
-    {
+    try {
         let file_buffer_on_pc = fs.readFileSync(dir_path + file_name);
 
-        if (is_file_changed(file_buffer_on_pc, Buffer.from(buffer)))
-        {
+        if (is_file_changed(file_buffer_on_pc, Buffer.from(buffer))) {
             fs.writeFileSync(dir_path + file_name, Buffer.from(buffer));
             console.log("File changed, downloaded at: " + dir_path + file_name + " size of file: " + buffer.byteLength);
         }
 
-    } catch (err)
-    {
-        if (err.code === 'ENOENT')
-        {
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            return -1;
             fs.writeFileSync(dir_path + file_name, Buffer.from(buffer));
             console.log("File downloaded at: " + dir_path + file_name + " size of file: " + buffer.byteLength);
         }
@@ -293,8 +264,7 @@ async function download_file(file_name)
 }
 
 
-async function get_all_files(path_to_folder)
-{
+async function get_all_files(path_to_folder) {
     const path = "/me/drive/root:/cloud_storage" + path_to_folder + ":/children";
 
     let res = await fetch("https://graph.microsoft.com/v1.0" + path, {
@@ -304,12 +274,10 @@ async function get_all_files(path_to_folder)
         }
     })
         .then(response => response.json())
-        .then(data =>
-        {
+        .then(data => {
             return data;
         })
-        .catch((error) =>
-        {
+        .catch((error) => {
             console.error('Error:', error);
             return -1;
         });
@@ -318,14 +286,11 @@ async function get_all_files(path_to_folder)
     if (res === -1)
         return -1;
     let files = res.value;
-    for (let i = 0; i < files.length; i++)
-    {
-        if (files[i].folder != undefined)
-        {
+    for (let i = 0; i < files.length; i++) {
+        if (files[i].folder != undefined) {
             console.log("Folder Found: " + files[i].name);
             get_all_files(path_to_folder + "/" + files[i].name);
-        } else
-        {
+        } else {
             let final_path = path_to_folder + "/" + files[i].name
             download_file(final_path);
         }
@@ -333,35 +298,29 @@ async function get_all_files(path_to_folder)
     }
 }
 
-async function upload_files_recursion(path, folder_exeption_last)
-{
-    if (folder_exeption_last == null)
-    {
+async function upload_files_recursion(path, folder_exeption_last) {
+    if (folder_exeption_last == null) {
         const split_path = path.split("/");
         folder_exeption_last = split_path.slice(0, split_path.length - 0).join("/");
     }
 
     const files = fs.readdirSync(path);
-    await files.forEach(file =>
-    {
+    await files.forEach(file => {
         const filePath = `${path}/${file}`;
         const stats = fs.statSync(filePath);
-        if (stats.isFile())
-        {
+        if (stats.isFile()) {
             if (filePath.includes(".cloud_storage.db") || filePath.includes(".cloud_storage_temp.db"))
                 return;
             const sv_file_path = filePath.replace(folder_exeption_last, "");
             upload_file(filePath, sv_file_path);
-        } else if (stats.isDirectory())
-        {
+        } else if (stats.isDirectory()) {
             if (!filePath.includes("."))
                 upload_files_recursion(filePath, folder_exeption_last);
         }
     });
 }
 
-async function upload_all_folder()
-{
+async function upload_all_folder() {
     await upload_files_recursion(userHomeDir + "/cloud_storage", null)
 }
 

@@ -27,7 +27,22 @@ async function insert_file_on_pc(file_path) {
         return;
     }
 
-    db.insert_file(file_path, get_file_hash_buf(fs.readFileSync(file_path)));
+    let hash;
+
+    while (true) {
+        try {
+            const file_buffer = fs.readFileSync(file_path);
+            hash = get_file_hash_buf(file_buffer);
+            break;
+        } catch (error) {
+            if (error.message.includes("no such file or directory")) {
+                print.error("File not found");
+                return;
+            }
+        }
+    }
+
+    db.insert_file(file_path, hash);
     print.okay(`Inserted file on pc: ${file_path}`);
 }
 
