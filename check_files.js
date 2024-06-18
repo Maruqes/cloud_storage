@@ -20,10 +20,17 @@ function get_file_hash_buf(buf) {
 async function insert_file_on_pc(file_path) {
     //download file from cloud
     const file_path_after_cloud_folder = file_path.replace(userHomeDir + "/cloud_storage", "");
-    const res = await api.download_file(file_path_after_cloud_folder);
+    let res = await api.download_file(file_path_after_cloud_folder);
 
     if (res == -1) {
         print.error("Error downloading file");
+        //try 3 times
+        for (let i = 0; i < 3; i++) {
+            let res = await api.download_file(file_path_after_cloud_folder);
+            if (res !== -1) {
+                break;
+            }
+        }
         return;
     }
 
