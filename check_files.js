@@ -11,6 +11,12 @@ const { connect } = require('http2');
 const userHomeDir = os.homedir()
 
 
+function get_file_hash_buf(buf) {
+    const hash = crypto.createHash('sha256');
+    hash.update(buf);
+    return hash.digest('hex');
+}
+
 async function insert_file_on_pc(file_path) {
     //download file from cloud
     const file_path_after_cloud_folder = file_path.replace(userHomeDir + "/cloud_storage", "");
@@ -21,6 +27,7 @@ async function insert_file_on_pc(file_path) {
         return;
     }
 
+    db.insert_file(file_path, get_file_hash_buf(fs.readFileSync(file_path)));
     print.okay(`Inserted file on pc: ${file_path}`);
 }
 
@@ -180,11 +187,7 @@ async function insert_file(file_path, file_hash) {
     }
 }
 
-function get_file_hash_buf(buf) {
-    const hash = crypto.createHash('sha256');
-    hash.update(buf);
-    return hash.digest('hex');
-}
+
 
 function is_file_changed(file_buffer1, file_hash) {
 
