@@ -239,7 +239,12 @@ async function compare_folder_to_db_files(dir_path, folder, db) {
         if (filePath.includes(".cloud_storage.db-journal"))
             continue;
 
-        const stats = fs.statSync(filePath);
+        let stats;
+        try {
+            stats = fs.statSync(filePath);
+        } catch (error) {
+            continue;
+        }
 
         if (stats.isFile()) {
             await update_hash_and_add_to_table(filePath, db);
