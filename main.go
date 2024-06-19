@@ -2,6 +2,7 @@ package main
 
 import (
 	// "database/sql"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -28,7 +29,36 @@ func list_all_files_on_folder_and_subfolders(path string) {
 
 func main() {
 	list_all_files_on_folder_and_subfolders("/home/marques/cloud_storage")
+
+	//read secrets.json and print
+	secrets, err := ioutil.ReadFile("secrets.json")
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return
+	}
+
+	var Settings struct {
+		ClientID             string   `json:"clientId"`
+		ClientSecret         string   `json:"clientSecret"`
+		TenentID             string   `json:"tenantId"`
+		GraphUserScope       string   `json:"user_scopes"`
+		GraphUserScopesArray []string `json:"user_scopes_arr"`
+	}
+
+	err = json.Unmarshal(secrets, &Settings)
+	if err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
+		return
+	}
+
+	fmt.Println(Settings.ClientID)
+	fmt.Println(Settings.ClientSecret)
+	fmt.Println(Settings.TenentID)
+	fmt.Println(Settings.GraphUserScope)
+	fmt.Println(Settings.GraphUserScopesArray)
+
 	start_api()
+
 	// // Open the database file
 	// db, err := sql.Open("sqlite3", "test.db")
 	// if err != nil {
