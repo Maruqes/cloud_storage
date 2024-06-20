@@ -4,83 +4,89 @@ import (
 	// "database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"net/http"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func list_all_files_on_folder_and_subfolders(path string) {
+/*
+A SER VISTO
+CASO ACABE DURANTE A EXECUÇÃO DO PROGRAMA A TOKEN Q CARALHOS ACONTECE FODASEKKKK????
+*/
 
-	files, err := ioutil.ReadDir(path)
+var MAIN_PATH = ""
 
-	if err != nil {
-		log.Fatal(err)
-	}
+type Settings struct {
+	ClientID             string   `json:"clientId"`
+	ClientSecret         string   `json:"clientSecret"`
+	TenentID             string   `json:"tenantId"`
+	GraphUserScope       string   `json:"user_scopes"`
+	GraphUserScopesArray []string `json:"user_scopes_arr"`
+}
 
-	for _, file := range files {
-		fmt.Println(path + "/" + file.Name())
-		if file.IsDir() {
-			list_all_files_on_folder_and_subfolders(path + "/" + file.Name())
-		}
-	}
+func okay(a ...any) (n int, err error) {
+	return fmt.Printf("\033[32m"+a[0].(string)+"\033[0m\n", a[1:]...)
+}
 
+func warn(a ...any) (n int, err error) {
+	return fmt.Printf("\033[33m"+a[0].(string)+"\033[0m\n", a[1:]...)
+}
+
+func info(a ...any) (n int, err error) {
+	return fmt.Printf("\033[34m"+a[0].(string)+"\033[0m\n", a[1:]...)
+}
+
+func fail(a ...any) (n int, err error) {
+	return fmt.Printf("\033[31m"+a[0].(string)+"\033[0m\n", a[1:]...)
+}
+
+func start_server() {
+
+	info("Starting server...")
+	// register the handler function
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		code := r.URL.Query().Get("code")
+		global_code = code
+		fmt.Fprintf(w, "Code: %s\n", code)
+	})
+
+	// start web server on 8080
+	http.ListenAndServe(":8080", nil)
+}
+
+func start_server_thread() {
+	go start_server()
 }
 
 func main() {
-	list_all_files_on_folder_and_subfolders("/home/marques/cloud_storage")
+	homeDir, _ := os.UserHomeDir()
+	MAIN_PATH = homeDir + "/cloud_storage/"
+
+	file, err := os.Open(MAIN_PATH)
+	if err != nil {
+		os.Mkdir(MAIN_PATH, 0777)
+	}
+	file.Close()
+
+	start_server_thread()
 
 	//read secrets.json and print
-	secrets, err := ioutil.ReadFile("secrets.json")
+	secrets, err := os.ReadFile("secrets.json")
 	if err != nil {
 		fmt.Println("Error reading file:", err)
 		return
 	}
 
-	var Settings struct {
-		ClientID             string   `json:"clientId"`
-		ClientSecret         string   `json:"clientSecret"`
-		TenentID             string   `json:"tenantId"`
-		GraphUserScope       string   `json:"user_scopes"`
-		GraphUserScopesArray []string `json:"user_scopes_arr"`
-	}
+	settings := Settings{}
 
-	err = json.Unmarshal(secrets, &Settings)
+	err = json.Unmarshal(secrets, &settings)
 	if err != nil {
 		fmt.Println("Error unmarshaling JSON:", err)
 		return
 	}
 
-	fmt.Println(Settings.ClientID)
-	fmt.Println(Settings.ClientSecret)
-	fmt.Println(Settings.TenentID)
-	fmt.Println(Settings.GraphUserScope)
-	fmt.Println(Settings.GraphUserScopesArray)
+	start_api(settings)
 
-	start_api()
-
-	// // Open the database file
-	// db, err := sql.Open("sqlite3", "test.db")
-	// if err != nil {
-	// 	fmt.Println("Error opening database:", err)
-	// 	return
-	// }
-	// defer db.Close()
-
-	// // Create a table if it doesn't exist
-	// _, err = db.Exec("CREATE TABLE IF NOT EXISTS numbers (id INTEGER PRIMARY KEY, value INTEGER)")
-	// if err != nil {
-	// 	fmt.Println("Error creating table:", err)
-	// 	return
-	// }
-
-	// // Insert a number into the table
-	// value := 42
-	// _, err = db.Exec("INSERT INTO numbers (value) VALUES (?)", value)
-	// if err != nil {
-	// 	fmt.Println("Error inserting number:", err)
-	// 	return
-	// }
-
-	// fmt.Println("Number inserted successfully!")
+	check_all_files()
 }
