@@ -32,18 +32,11 @@ func fetch_upload_file(file *os.File, url string) (*fetch.Response, error) {
 	return response, err
 }
 
-func upload_file_to_onedrive(file_path string, file_name_on_cloud string) {
+func upload_file_to_onedrive(file_path string, file_name_on_cloud string, file *os.File) {
 	defer wg.Done()
 	defer func() { number_of_files-- }()
 
 	url := "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage/" + file_name_on_cloud + ":/content"
-
-	file, err := os.Open(file_path)
-	if err != nil {
-		fail("Error opening file:", err)
-		return
-	}
-	defer file.Close()
 
 	response, err := fetch_upload_file(file, url)
 
