@@ -69,6 +69,13 @@ func main() {
 	}
 	file.Close()
 
+	// create the database and tables
+	res, err := create_sqlite_db_and_tables()
+	if res != 0 {
+		fail("Error creating database " + err.Error())
+		return
+	}
+
 	start_server_thread()
 
 	//read secrets.json and print

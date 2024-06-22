@@ -20,8 +20,8 @@ var global_tokens Tokens = Tokens{}
 
 func fetch_upload_file(file *os.File, url string) (*fetch.Response, error) {
 
-	testprint := strings.Replace(url, "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage/", "", 1)
-	fmt.Println("Uploading file:", strings.Replace(testprint, ":/content", "", 1))
+	_ = strings.Replace(url, "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage/", "", 1)
+	// fmt.Println("Uploading file:", strings.Replace(testprint, ":/content", "", 1))
 	response, err := fetch.Put(url, &fetch.Config{
 		Headers: map[string]string{
 			"Authorization": "Bearer " + global_tokens.Token,
@@ -32,21 +32,21 @@ func fetch_upload_file(file *os.File, url string) (*fetch.Response, error) {
 	return response, err
 }
 
-func upload_file_to_onedrive(file_path string, file_name_on_cloud string, file *os.File) {
-	defer wg.Done()
-	defer func() { number_of_files-- }()
+func upload_file_to_onedrive(file_name_on_cloud string, file *os.File) (err error) {
+	file.Seek(0, 0) //sets it at the beginning of the file
 
 	url := "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage/" + file_name_on_cloud + ":/content"
 
-	response, err := fetch_upload_file(file, url)
+	_, err = fetch_upload_file(file, url)
 
 	if err != nil {
 		fail("Error uploading file:", err)
 		number_of_errors++
-		return
+		return err
 	}
 
-	fmt.Println("File uploaded with code:", response.StatusCode())
+	// fmt.Println("File uploaded with code:", response.StatusCode())
+	return nil
 }
 
 func delete_file_on_onedrive(file_name_on_cloud string) {
