@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,11 +48,10 @@ func upload_file_to_onedrive(file_name_on_cloud string, file *os.File) (err erro
 
 	status := response.StatusCode()
 	if status < 200 || status >= 300 {
-		fail("Error downloading file, status code:", status)
-		return fmt.Errorf("error downloading file, status code: %d", status)
+		fail("Error uploading file, status code:" + strconv.Itoa(status))
+		return fmt.Errorf("error uploading file, status code: %d", status)
 	}
 
-	// fmt.Println("File uploaded with code:", response.StatusCode())
 	return nil
 }
 
@@ -65,7 +65,7 @@ func delete_file_on_onedrive(file_name_on_cloud string) {
 	})
 
 	if err != nil {
-		fail("Error deleting file:", err)
+		fail("Error deleting file:" + err.Error())
 		return
 	}
 
@@ -82,7 +82,7 @@ func download_file_from_onedrive(file_name_on_cloud string) error {
 	})
 
 	if err != nil {
-		fail("Error downloading file:", err)
+		fail("Error downloading file:" + err.Error())
 		return err
 	}
 
@@ -90,20 +90,20 @@ func download_file_from_onedrive(file_name_on_cloud string) error {
 
 	file, err := os.Create(file_path)
 	if err != nil {
-		fail("Error creating file:", err)
+		fail("Error creating file:" + err.Error())
 		return err
 	}
 	defer file.Close()
 
 	_, err = file.Write(response.Body)
 	if err != nil {
-		fail("Error writing file:", err)
+		fail("Error writing file:" + err.Error())
 		return err
 	}
 
 	status := response.StatusCode()
 	if status < 200 || status >= 300 {
-		fail("Error downloading file, status code:", status)
+		fail("Error downloading file, status code:" + strconv.Itoa(status))
 		return fmt.Errorf("error downloading file, status code: %d", status)
 	}
 	fmt.Println("File downloaded with code:", response.StatusCode())

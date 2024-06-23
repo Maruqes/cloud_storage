@@ -29,16 +29,31 @@ func hash_file(file_buf *os.File) string {
 }
 
 func upload_last_sync() {
-	file_buf, err := os.Open(MAIN_PATH + "cloud_storage.db")
-	if err != nil {
-		fail("Error opening file:", err)
-		return
-	}
-	defer file_buf.Close()
 
-	err = upload_file_to_onedrive("cloud_storage_temp.db", file_buf)
-	if err != nil {
-		fail("Error uploading file:", err)
+	number_of_tries := 0
+
+	for number_of_tries < 5 {
+		file_buf, err := os.Open(MAIN_PATH + "cloud_storage.db")
+		if err != nil {
+			fail("Error opening file:" + err.Error())
+			return
+		}
+
+		err = upload_file_to_onedrive("cloud_storage_temp.db", file_buf)
+		if err != nil {
+			fail("Error uploading file:" + err.Error())
+			number_of_tries++
+		} else {
+			file_buf.Close()
+			break
+		}
+
+		file_buf.Close()
+
+	}
+
+	if number_of_tries == 5 {
+		fail("Error uploading last sync")
 		return
 	}
 
@@ -59,15 +74,12 @@ func upload_file(file_path string, file_buf *os.File) {
 
 	err := upload_file_to_onedrive(file_name_on_cloud, file_buf)
 	if err != nil {
-		fail("Error uploading file :", file_name_on_cloud+" Error: "+err.Error())
+		fail("Error uploading file :" + file_name_on_cloud + " Error: " + err.Error())
 		return
 	}
 	okay("Uploaded file: " + file_name_on_cloud)
 
 	upload_file_to_database(file_path, file_hash)
-	update_last_sync()
-	go upload_last_sync()
-
 }
 
 func upload_file_bicha(file_path string, file_buf *os.File) {
@@ -80,6 +92,8 @@ func upload_file_bicha(file_path string, file_buf *os.File) {
 		wg.Wait()
 		info("Done uploading files")
 	}
+	update_last_sync()
+	upload_last_sync()
 }
 
 func loop_all_dirs(dir string) {

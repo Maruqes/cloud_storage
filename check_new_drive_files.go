@@ -43,6 +43,11 @@ func check_for_new_files_on_drive() {
 		return
 	}
 
+	if _, err := os.Stat(MAIN_PATH + "cloud_storage_temp.db"); os.IsNotExist(err) {
+		fail("Error file not found")
+		return
+	}
+
 	last_sync := temp_db_get_last_sync()
 
 	our_last_sync := get_last_sync()
