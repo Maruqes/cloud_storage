@@ -5,17 +5,15 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 var wg sync.WaitGroup
 var number_of_files int = 0
 var number_of_errors int = 0
 
-var NUMBER_OF_FILES_THAT_CAN_BE_UPLOADED int = 5
+const NUMBER_OF_FILES_THAT_CAN_BE_UPLOADED int = 5
 
 func hash_file(file_buf *os.File) string {
 	file_buf.Seek(0, 0) //sets it at the beginning of the file
@@ -70,11 +68,23 @@ func upload_file(file_path string, file_buf *os.File) {
 
 }
 
+func upload_file_bicha(file_path string, file_buf *os.File) {
+	number_of_files++
+	wg.Add(1)
+	go upload_file(file_path, file_buf)
+
+	if number_of_files >= NUMBER_OF_FILES_THAT_CAN_BE_UPLOADED {
+		info("Waiting for files to upload...")
+		wg.Wait()
+		info("Done uploading files")
+	}
+}
+
 func loop_all_dirs(dir string) {
 
 	files, err := os.ReadDir(dir)
 	if err != nil {
-		fail("Error reading directory:", err)
+		fail("Error reading directory:" + err.Error())
 		return
 	}
 
@@ -82,7 +92,10 @@ func loop_all_dirs(dir string) {
 		if file.IsDir() {
 			loop_all_dirs(dir + file.Name() + "/")
 		} else {
-			if file.Name() == "cloud_storage.db" || file.Name() == "cloud_storage_temp.db" {
+			if file.Name() == "cloud_storage.db" ||
+				file.Name() == "cloud_storage_temp.db" ||
+				file.Name() == "cloud_storage.db-journal" ||
+				file.Name() == "cloud_storage_temp.db-journal" {
 				continue
 			}
 
@@ -90,7 +103,7 @@ func loop_all_dirs(dir string) {
 
 			file_buf, err := os.Open(cur_dir)
 			if err != nil {
-				fail("Error opening file:", err)
+				fail("Error opening file:" + err.Error())
 				return
 			}
 			cur_file_hash := hash_file(file_buf)
@@ -98,32 +111,44 @@ func loop_all_dirs(dir string) {
 			if !compare_hash_with_database(cur_dir, cur_file_hash) {
 				info("File has changed:" + cur_dir)
 				// if file is new or has changed
-				number_of_files++
-				wg.Add(1)
-				go upload_file(cur_dir, file_buf)
-
-				if number_of_files >= NUMBER_OF_FILES_THAT_CAN_BE_UPLOADED {
-					info("Waiting for files to upload...")
-					wg.Wait()
-					info("Done uploading files")
-				}
-
+				upload_file_bicha(cur_dir, file_buf)
 			}
 		}
 	}
 
 	wg.Wait()
 }
-func check_all_files() {
-	for {
-		number_of_errors = 0
-		t1 := time.Now()
 
-		info("\n\nChecking all files...")
-		loop_all_dirs("/home/marques/cloud_storage/")
+func check_deleted_files() {
+	files := get_all_files()
+	for _, file := range files {
 
-		t2 := time.Now()
-		info("Time taken to check all files:" + t2.Sub(t1).String())
-		fail("Number of errors:" + strconv.Itoa(number_of_errors))
+		file_w_main := MAIN_PATH + file
+
+		if _, err := os.Stat(file_w_main); os.IsNotExist(err) {
+			info("File deleted:" + file)
+
+			delete_file_on_onedrive(file)
+			delete_file_in_database(file_w_main)
+			go upload_last_sync()
+		}
 	}
+}
+
+func check_all_files() {
+	// for {
+	// 	number_of_errors = 0
+	// 	t1 := time.Now()
+
+	// 	info("\n\nChecking all files...")
+
+	// 	check_deleted_files()
+	// 	loop_all_dirs(MAIN_PATH)
+
+	// 	t2 := time.Now()
+	// 	info("Time taken to check all files:" + t2.Sub(t1).String())
+	// 	fail("Number of errors:" + strconv.Itoa(number_of_errors))
+	// }
+	check_for_new_files_on_drive()
+
 }

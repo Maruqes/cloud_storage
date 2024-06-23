@@ -66,7 +66,7 @@ func delete_file_on_onedrive(file_name_on_cloud string) {
 	fmt.Println("File deleted with code:", response.StatusCode())
 }
 
-func donwload_file_from_onedrive(file_name_on_cloud string) {
+func download_file_from_onedrive(file_name_on_cloud string) error {
 	url := "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage/" + file_name_on_cloud + ":/content"
 
 	response, err := fetch.Get(url, &fetch.Config{
@@ -77,25 +77,26 @@ func donwload_file_from_onedrive(file_name_on_cloud string) {
 
 	if err != nil {
 		fail("Error downloading file:", err)
-		return
+		return err
 	}
 
-	file_path := "/home/marques/cloud_storage/" + file_name_on_cloud
+	file_path := MAIN_PATH + file_name_on_cloud
 
 	file, err := os.Create(file_path)
 	if err != nil {
 		fail("Error creating file:", err)
-		return
+		return err
 	}
 	defer file.Close()
 
 	_, err = file.Write(response.Body)
 	if err != nil {
 		fail("Error writing file:", err)
-		return
+		return err
 	}
 
 	fmt.Println("File downloaded with code:", response.StatusCode())
+	return nil
 }
 
 // api login functions
