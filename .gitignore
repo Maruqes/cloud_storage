@@ -3,4 +3,4 @@ package-lock.json
 package.json
 secrets.json
 tokens.json
-cloud_storage
+./cloud_storage
