@@ -90,18 +90,19 @@ func update_last_sync() {
 	if err != nil {
 		fail("Error opening database:" + err.Error())
 	}
-	defer db.Close()
 
-	//only save last 50 syncs
+	// only save last 50 syncs
 	_, err = db.Exec("DELETE FROM last_sync WHERE id NOT IN (SELECT id FROM last_sync ORDER BY id DESC LIMIT 50);")
 	if err != nil {
 		fail("Error deleting from database:" + err.Error())
 	}
 
-	_, err = db.Exec("INSERT INTO last_sync (last_sync) VALUES (datetime('now'));")
+	// insert current timestamp with milliseconds
+	_, err = db.Exec("INSERT INTO last_sync (last_sync) VALUES (strftime('%Y-%m-%d %H:%M:%f', 'now'));")
 	if err != nil {
 		fail("Error inserting into database:" + err.Error())
 	}
+	db.Close()
 }
 
 func get_last_sync() string {
@@ -176,4 +177,15 @@ func get_all_files() (files []string) {
 	}
 
 	return files
+}
+
+func open_and_close_db() {
+	db, err := sql.Open("sqlite3", MAIN_PATH+"cloud_storage.db")
+	if err != nil {
+		fail("Error opening database:" + err.Error())
+	}
+
+	db.Ping()
+
+	db.Close()
 }

@@ -30,6 +30,10 @@ func hash_file(file_buf *os.File) string {
 
 func upload_last_sync() {
 
+	update_last_sync()
+
+	open_and_close_db()
+
 	number_of_tries := 0
 
 	for number_of_tries < 5 {
@@ -90,10 +94,9 @@ func upload_file_bicha(file_path string, file_buf *os.File) {
 	if number_of_files >= NUMBER_OF_FILES_THAT_CAN_BE_UPLOADED {
 		info("Waiting for files to upload...")
 		wg.Wait()
+		upload_last_sync()
 		info("Done uploading files")
 	}
-	update_last_sync()
-	upload_last_sync()
 }
 
 func loop_all_dirs(dir string) {
@@ -103,7 +106,7 @@ func loop_all_dirs(dir string) {
 		fail("Error reading directory:" + err.Error())
 		return
 	}
-
+	there_is_changes := false
 	for _, file := range files {
 		if file.IsDir() {
 			loop_all_dirs(dir + file.Name() + "/")
@@ -128,11 +131,14 @@ func loop_all_dirs(dir string) {
 				info("File has changed:" + cur_dir)
 				// if file is new or has changed
 				upload_file_bicha(cur_dir, file_buf)
+				there_is_changes = true
 			}
 		}
 	}
-
 	wg.Wait()
+	if there_is_changes {
+		upload_last_sync()
+	}
 }
 
 func check_deleted_files() {
