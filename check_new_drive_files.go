@@ -62,7 +62,11 @@ func check_for_new_files_on_drive() {
 		//check if file exists in our pc
 		if _, err := os.Stat(MAIN_PATH + file); os.IsNotExist(err) {
 
-			download_file_from_onedrive(file)
+			err = download_file_from_onedrive(file)
+			if err != nil {
+				fail("Error downloading file:" + err.Error())
+				return
+			}
 			upload_file_to_database(file, hashes[i])
 			info("File downloaded:" + file)
 		} else {
@@ -77,7 +81,11 @@ func check_for_new_files_on_drive() {
 			if hashes[i] != cur_file_hash {
 				info("File has changed:" + file)
 				// if file is new or has changed
-				download_file_from_onedrive(file)
+				err = download_file_from_onedrive(file)
+				if err != nil {
+					fail("Error downloading file:" + err.Error())
+					return
+				}
 				upload_file_to_database(file, hashes[i])
 				info("File downloaded:" + file)
 			}

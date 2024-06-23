@@ -37,12 +37,18 @@ func upload_file_to_onedrive(file_name_on_cloud string, file *os.File) (err erro
 
 	url := "https://graph.microsoft.com/v1.0/me/drive/root:/cloud_storage/" + file_name_on_cloud + ":/content"
 
-	_, err = fetch_upload_file(file, url)
+	response, err := fetch_upload_file(file, url)
 
 	if err != nil {
 		fail("Error uploading file:", err)
 		number_of_errors++
 		return err
+	}
+
+	status := response.StatusCode()
+	if status < 200 || status >= 300 {
+		fail("Error downloading file, status code:", status)
+		return fmt.Errorf("error downloading file, status code: %d", status)
 	}
 
 	// fmt.Println("File uploaded with code:", response.StatusCode())
@@ -95,6 +101,11 @@ func download_file_from_onedrive(file_name_on_cloud string) error {
 		return err
 	}
 
+	status := response.StatusCode()
+	if status < 200 || status >= 300 {
+		fail("Error downloading file, status code:", status)
+		return fmt.Errorf("error downloading file, status code: %d", status)
+	}
 	fmt.Println("File downloaded with code:", response.StatusCode())
 	return nil
 }
