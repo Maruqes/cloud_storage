@@ -5,8 +5,10 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var wg sync.WaitGroup
@@ -136,19 +138,19 @@ func check_deleted_files() {
 }
 
 func check_all_files() {
-	// for {
-	// 	number_of_errors = 0
-	// 	t1 := time.Now()
+	for {
+		number_of_errors = 0
+		t1 := time.Now()
 
-	// 	info("\n\nChecking all files...")
+		info("\n\nChecking all files...")
 
-	// 	check_deleted_files()
-	// 	loop_all_dirs(MAIN_PATH)
+		check_for_new_files_on_drive()
+		check_deleted_files()
+		loop_all_dirs(MAIN_PATH)
 
-	// 	t2 := time.Now()
-	// 	info("Time taken to check all files:" + t2.Sub(t1).String())
-	// 	fail("Number of errors:" + strconv.Itoa(number_of_errors))
-	// }
-	check_for_new_files_on_drive()
+		t2 := time.Now()
+		info("Time taken to check all files:" + t2.Sub(t1).String())
+		fail("Number of errors:" + strconv.Itoa(number_of_errors))
+	}
 
 }
