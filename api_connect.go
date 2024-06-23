@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -87,6 +88,13 @@ func download_file_from_onedrive(file_name_on_cloud string) error {
 	}
 
 	file_path := MAIN_PATH + file_name_on_cloud
+
+	// Create folders if they don't exist
+	err = os.MkdirAll(filepath.Dir(file_path), os.ModePerm)
+	if err != nil {
+		fail("Error creating folders:" + err.Error())
+		return err
+	}
 
 	file, err := os.Create(file_path)
 	if err != nil {
