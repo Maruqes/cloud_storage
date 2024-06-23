@@ -52,8 +52,8 @@ func error_429_wait(response *fetch.Response) error {
 		return err
 	}
 
-	info("Waiting for " + strconv.Itoa(refresh_time.RetryAfterSeconds+5) + " seconds")
-	time.Sleep(time.Duration(refresh_time.RetryAfterSeconds+5) * time.Second)
+	info("Waiting for 60 seconds")
+	time.Sleep(60 * time.Second)
 
 	return nil
 }
@@ -72,6 +72,7 @@ func upload_file_to_onedrive(file_name_on_cloud string, file *os.File) (err erro
 	}
 
 	if response.StatusCode() == 429 {
+		fmt.Println(response)
 		fail("Error uploading file, too many requests")
 		//get retryAfterSeconds on respose and wait that amount of time
 		err = error_429_wait(response)

@@ -94,6 +94,5 @@ func main() {
 	}
 
 	start_api(settings)
-
 	check_all_files()
 }
