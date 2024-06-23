@@ -98,5 +98,5 @@ func check_for_new_files_on_drive() {
 	}
 
 	check_for_deleted_files(MAIN_PATH)
-	update_last_sync()
+	set_last_sync(last_sync)
 }

@@ -105,6 +105,25 @@ func update_last_sync() {
 	db.Close()
 }
 
+func set_last_sync(last_sync string) {
+	db, err := sql.Open("sqlite3", MAIN_PATH+"cloud_storage.db")
+	if err != nil {
+		fail("Error opening database:" + err.Error())
+	}
+
+	// only save last 50 syncs
+	_, err = db.Exec("DELETE FROM last_sync WHERE id NOT IN (SELECT id FROM last_sync ORDER BY id DESC LIMIT 50);")
+	if err != nil {
+		fail("Error deleting from database:" + err.Error())
+	}
+
+	_, err = db.Exec("INSERT INTO last_sync (last_sync) VALUES (?);", last_sync)
+	if err != nil {
+		fail("Error inserting into database:" + err.Error())
+	}
+	db.Close()
+}
+
 func get_last_sync() string {
 	db, err := sql.Open("sqlite3", MAIN_PATH+"cloud_storage.db")
 	if err != nil {

@@ -34,6 +34,30 @@ func fetch_upload_file(file *os.File, url string) (*fetch.Response, error) {
 	return response, err
 }
 
+func error_429_wait(response *fetch.Response) error {
+	json_string, err := response.JSON()
+	if err != nil {
+		fmt.Println("Error parsing JSON:", err)
+		return err
+	}
+
+	//convert json string to struct
+
+	refresh_time := struct {
+		RetryAfterSeconds int `json:"retryAfterSeconds"`
+	}{}
+	err = json.Unmarshal([]byte(json_string), &refresh_time)
+	if err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
+		return err
+	}
+
+	info("Waiting for " + strconv.Itoa(refresh_time.RetryAfterSeconds+5) + " seconds")
+	time.Sleep(time.Duration(refresh_time.RetryAfterSeconds+5) * time.Second)
+
+	return nil
+}
+
 func upload_file_to_onedrive(file_name_on_cloud string, file *os.File) (err error) {
 	file.Seek(0, 0) //sets it at the beginning of the file
 
@@ -45,6 +69,17 @@ func upload_file_to_onedrive(file_name_on_cloud string, file *os.File) (err erro
 		fail("Error uploading file:", err)
 		number_of_errors++
 		return err
+	}
+
+	if response.StatusCode() == 429 {
+		fail("Error uploading file, too many requests")
+		//get retryAfterSeconds on respose and wait that amount of time
+		err = error_429_wait(response)
+		if err != nil {
+			return err
+		}
+		//try again
+		return upload_file_to_onedrive(file_name_on_cloud, file)
 	}
 
 	status := response.StatusCode()
@@ -85,6 +120,16 @@ func download_file_from_onedrive(file_name_on_cloud string) error {
 	if err != nil {
 		fail("Error downloading file:" + err.Error())
 		return err
+	}
+
+	if response.StatusCode() == 429 {
+		fail("Error downloading file, too many requests")
+		//get retryAfterSeconds on respose and wait that amount of time
+		err = error_429_wait(response)
+		if err != nil {
+			return err
+		}
+		return download_file_from_onedrive(file_name_on_cloud)
 	}
 
 	file_path := MAIN_PATH + file_name_on_cloud
