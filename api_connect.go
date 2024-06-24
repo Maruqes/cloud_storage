@@ -35,22 +35,6 @@ func fetch_upload_file(file *os.File, url string) (*fetch.Response, error) {
 }
 
 func error_429_wait(response *fetch.Response) error {
-	json_string, err := response.JSON()
-	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
-		return err
-	}
-
-	//convert json string to struct
-
-	refresh_time := struct {
-		RetryAfterSeconds int `json:"retryAfterSeconds"`
-	}{}
-	err = json.Unmarshal([]byte(json_string), &refresh_time)
-	if err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
-		return err
-	}
 
 	info("Waiting for 60 seconds")
 	time.Sleep(60 * time.Second)

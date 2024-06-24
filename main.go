@@ -13,7 +13,11 @@ import (
 /*
 A SER VISTO
 CASO ACABE DURANTE A EXECUÇÃO DO PROGRAMA A TOKEN Q CARALHOS ACONTECE FODASEKKKK????
+401 UNAUTHORIZED durante uplaod
 */
+
+
+//ideia é ter uma api para comunicar com uma app q mostre as merdas todas :D
 
 var MAIN_PATH = ""
 
